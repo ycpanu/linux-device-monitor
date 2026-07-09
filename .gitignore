@@ -1,0 +1,10 @@
+build/
+*.o
+*.so
+*.a
+*.out
+*.log
+*.db
+.cache/
+.vscode/
+
