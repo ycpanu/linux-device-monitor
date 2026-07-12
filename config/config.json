@@ -1,0 +1,5 @@
+{
+	"device_id":"linux_gateway_001",
+	"collect_interval":5,
+	"disk_path":"/"
+}
