@@ -10,6 +10,7 @@ include_directories(include)
 
 # 查找 nlohmann_json 依赖
 find_package(nlohmann_json 3.2.0 REQUIRED)
+find_package(SQLite3 REQUIRED)
 
 add_executable(device-monitor
     src/main.cpp
@@ -23,10 +24,12 @@ add_executable(device-monitor
     src/collector/DiskCollector.cpp
 
     src/alarm/AlarmEngine.cpp
+    src/storage/SQLiteStorage.cpp
 )
 
 # 链接 JSON 库
 target_link_libraries(device-monitor
     PRIVATE
     nlohmann_json::nlohmann_json
+    SQLite::SQLite3
 )

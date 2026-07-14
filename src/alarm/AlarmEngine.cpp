@@ -2,6 +2,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <ctime>
 
 AlarmEngine::AlarmEngine(const AlarmRule& rule)
     : rule_(rule) {
@@ -90,6 +91,7 @@ void AlarmEngine::checkValue(const std::string& alarm_type,
         if (alarming_[alarm_type]) {
             if (current_level_[alarm_type] == "WARNING" && level == "CRITICAL") {
                 AlarmEvent event;
+		event.timestamp = std::time(nullptr);
                 event.alarm_type = alarm_type;
                 event.level = level;
                 event.current_value = current_value;
@@ -112,6 +114,7 @@ void AlarmEngine::checkValue(const std::string& alarm_type,
          */
         if (abnormal_count_[alarm_type] >= rule_.continuous_count) {
             AlarmEvent event;
+	    event.timestamp = std::time(nullptr);
             event.alarm_type = alarm_type;
             event.level = level;
             event.current_value = current_value;
@@ -140,6 +143,7 @@ void AlarmEngine::checkValue(const std::string& alarm_type,
 
     if (alarming_[alarm_type]) {
         AlarmEvent event;
+	event.timestamp = std::time(nullptr);
         event.alarm_type = alarm_type;
         event.level = "INFO";
         event.current_value = current_value;

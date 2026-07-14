@@ -5,12 +5,14 @@
 #include "collector/MemoryCollector.h"
 #include "collector/DiskCollector.h"
 #include "alarm/AlarmEngine.h"
+#include "storage/SQLiteStorage.h"
 
 #include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <thread>
+#include <ctime>
 
 std::string formatDouble(double value) {
     std::ostringstream oss;
@@ -38,10 +40,18 @@ int main(int argc, char* argv[]) {
     Logger::info("main", "device_id: " + config.device_id);
     Logger::info("main", "collect_interval: " + std::to_string(config.collect_interval) + " seconds");
     Logger::info("main", "disk_path: " + config.disk_path);
+    Logger::info("main", "database_path:" + config.database_path);
 
     CpuCollector cpu_collector;
     MemoryCollector memory_collector;
     DiskCollector disk_collector;
+
+    SQLiteStorage storage;
+    if(!storage.init(config.database_path))
+    {
+	    Logger::error("main", "failed to initialize storage, program exit");
+	    return 1;
+    }
 
     /*
      * 根据配置文件创建告警规则。
@@ -63,6 +73,7 @@ int main(int argc, char* argv[]) {
     while (true) {
         SystemMetrics metrics;
         metrics.disk_path = config.disk_path;
+	metrics.timestamp = std::time(nullptr);
 
         bool cpu_ok = cpu_collector.collect(metrics.cpu_usage);
         bool mem_ok = memory_collector.collect(metrics.memory_usage);
@@ -76,6 +87,10 @@ int main(int argc, char* argv[]) {
             std::cout << "Disk Usage   : " << formatDouble(metrics.disk_usage) << "%" << std::endl;
             std::cout << "Disk Path    : " << metrics.disk_path << std::endl;
 
+	    if(!storage.saveMetrics(config.device_id,metrics))
+	    {
+		    Logger::warn("main", "save metrics failed");
+	    }
             /*
              * 第二阶段新增：
              * 将采集到的系统指标交给告警引擎判断。
@@ -90,6 +105,11 @@ int main(int argc, char* argv[]) {
                 } else {
                     Logger::warn("alarm", "[" + event.alarm_type + "] " + event.message);
                 }
+
+		if(!storage.saveAlarm(config.device_id, event))
+		{
+			Logger::warn("main", "save alarm failed");
+		}
             }
         } else {
             Logger::warn("main", "some metrics collect failed");

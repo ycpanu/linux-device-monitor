@@ -31,6 +31,9 @@ struct AlarmEvent {
     double threshold = 0.0;
 
     bool recovered = false;
+
+    //告警发生时间
+    long timestamp = 0;
 };
 
 /*

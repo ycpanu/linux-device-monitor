@@ -20,6 +20,7 @@ struct AppConfig {
     std::string device_id = "linux_gateway_001";
     int collect_interval = 5;
     std::string disk_path = "/";
+    std::string database_path="../data/monitor.db";
 
     int alarm_continuous_count = 3;
 

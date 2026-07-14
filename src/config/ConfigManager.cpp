@@ -21,7 +21,7 @@ bool ConfigManager::load(const std::string& config_path) {
         config_.device_id = j.value("device_id", config_.device_id);
         config_.collect_interval = j.value("collect_interval", config_.collect_interval);
         config_.disk_path = j.value("disk_path", config_.disk_path);
-
+ 	config_.database_path = j.value("database_path", config_.database_path);
         if (config_.collect_interval <= 0) {
             Logger::warn("config", "invalid collect_interval, reset to 5 seconds");
             config_.collect_interval = 5;

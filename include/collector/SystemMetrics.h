@@ -15,6 +15,7 @@ struct SystemMetrics
     double disk_usage = 0.0;      // 磁盘使用率，单位：百分比
 
     std::string disk_path = "/";  // 被监控的磁盘挂载点，默认监控根目录 /
+    long timestamp = 0;
 };
 
 
