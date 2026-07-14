@@ -4,6 +4,7 @@
 #include "collector/CpuCollector.h"
 #include "collector/MemoryCollector.h"
 #include "collector/DiskCollector.h"
+#include "alarm/AlarmEngine.h"
 
 #include <chrono>
 #include <iomanip>
@@ -11,12 +12,6 @@
 #include <sstream>
 #include <thread>
 
-/*
- * 把 double 类型保留两位小数，转换成字符串。
- *
- * 例如：
- * 35.6789 -> "35.68"
- */
 std::string formatDouble(double value) {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2) << value;
@@ -26,12 +21,6 @@ std::string formatDouble(double value) {
 int main(int argc, char* argv[]) {
     std::string config_path = "config/config.json";
 
-    /*
-     * 支持通过命令行参数指定配置文件路径。
-     *
-     * 例如：
-     * ./device-monitor -c config/config.json
-     */
     if (argc == 3 && std::string(argv[1]) == "-c") {
         config_path = argv[2];
     }
@@ -55,12 +44,22 @@ int main(int argc, char* argv[]) {
     DiskCollector disk_collector;
 
     /*
-     * 主循环：
-     * 每隔 collect_interval 秒采集一次系统状态。
-     *
-     * 第一阶段先使用单线程循环。
-     * 后续如果要支持多模块并发，可以再改成多线程模型。
+     * 根据配置文件创建告警规则。
      */
+    AlarmRule alarm_rule;
+    alarm_rule.continuous_count = config.alarm_continuous_count;
+
+    alarm_rule.cpu_warning_threshold = config.cpu_warning_threshold;
+    alarm_rule.cpu_critical_threshold = config.cpu_critical_threshold;
+
+    alarm_rule.memory_warning_threshold = config.memory_warning_threshold;
+    alarm_rule.memory_critical_threshold = config.memory_critical_threshold;
+
+    alarm_rule.disk_warning_threshold = config.disk_warning_threshold;
+    alarm_rule.disk_critical_threshold = config.disk_critical_threshold;
+
+    AlarmEngine alarm_engine(alarm_rule);
+
     while (true) {
         SystemMetrics metrics;
         metrics.disk_path = config.disk_path;
@@ -76,14 +75,26 @@ int main(int argc, char* argv[]) {
             std::cout << "Memory Usage : " << formatDouble(metrics.memory_usage) << "%" << std::endl;
             std::cout << "Disk Usage   : " << formatDouble(metrics.disk_usage) << "%" << std::endl;
             std::cout << "Disk Path    : " << metrics.disk_path << std::endl;
+
+            /*
+             * 第二阶段新增：
+             * 将采集到的系统指标交给告警引擎判断。
+             */
+            std::vector<AlarmEvent> alarm_events = alarm_engine.checkMetrics(metrics);
+
+            for (const auto& event : alarm_events) {
+                if (event.recovered) {
+                    Logger::info("alarm", "[" + event.alarm_type + "] " + event.message);
+                } else if (event.level == "CRITICAL") {
+                    Logger::error("alarm", "[" + event.alarm_type + "] " + event.message);
+                } else {
+                    Logger::warn("alarm", "[" + event.alarm_type + "] " + event.message);
+                }
+            }
         } else {
             Logger::warn("main", "some metrics collect failed");
         }
 
-        /*
-         * sleep_for 表示让当前线程睡眠一段时间。
-         * 这里表示每隔 collect_interval 秒采集一次。
-         */
         std::this_thread::sleep_for(std::chrono::seconds(config.collect_interval));
     }
 

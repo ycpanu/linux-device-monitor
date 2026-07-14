@@ -21,6 +21,8 @@ add_executable(device-monitor
     src/collector/CpuCollector.cpp
     src/collector/MemoryCollector.cpp
     src/collector/DiskCollector.cpp
+
+    src/alarm/AlarmEngine.cpp
 )
 
 # 链接 JSON 库

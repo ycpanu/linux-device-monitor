@@ -6,51 +6,68 @@
 
 using json = nlohmann::json;
 
-bool ConfigManager::load(const std::string& config_path)
-{
-	std::ifstream file(config_path);
+bool ConfigManager::load(const std::string& config_path) {
+    std::ifstream file(config_path);
 
-	/*
-	 * 如果打不开，说明文件不存在或者没有权限读取
-	 */
+    if (!file.is_open()) {
+        Logger::warn("config", "config file not found, use default config: " + config_path);
+        return true;
+    }
 
-	if(!file.is_open())
-	{
-		Logger::warn("config","config file not found, use default config:"+config_path);
-		return true;
-	}
+    try {
+        json j;
+        file >> j;
 
-	try
-	{
-		json j;
-		file >> j;
-		
-		/*
-		 * value(“字段名”，默认值)
-		 * 如果存在JSON中存在该字段就读取
-		 * 不存在就使用默认值
-		 */
-		config_.device_id =  j.value("device_id",config_.device_id);
-		config_.collect_interval = j.value("collect_interval",config_.collect_interval);
-		config_.disk_path = j.value("disk_path",config_.disk_path);
+        config_.device_id = j.value("device_id", config_.device_id);
+        config_.collect_interval = j.value("collect_interval", config_.collect_interval);
+        config_.disk_path = j.value("disk_path", config_.disk_path);
 
-		/*简单校验，避免采集周期配置成0或负值*/
-		if(config_.collect_interval <= 0)
-		{
-			Logger::warn("config","invalid collect_interval,reset to 5 seconds");
-			config_.collect_interval = 5;
-		}
+        if (config_.collect_interval <= 0) {
+            Logger::warn("config", "invalid collect_interval, reset to 5 seconds");
+            config_.collect_interval = 5;
+        }
 
-		Logger::info("config","config loaded successfully");
-		return true;
-	}catch(const std::exception& e){
-		//JSON 格式错误
-		Logger::error("config",std::string("parse config faild:")+e.what());
-		return false;
-	}
+        /*
+         * 读取 alarm 配置。
+         *
+         * contains("alarm")：判断 JSON 里是否存在 alarm 字段。
+         * is_object()：判断 alarm 是否是一个 JSON 对象。
+         */
+        if (j.contains("alarm") && j["alarm"].is_object()) {
+            json alarm = j["alarm"];
+
+            config_.alarm_continuous_count =
+                alarm.value("continuous_count", config_.alarm_continuous_count);
+
+            config_.cpu_warning_threshold =
+                alarm.value("cpu_warning_threshold", config_.cpu_warning_threshold);
+            config_.cpu_critical_threshold =
+                alarm.value("cpu_critical_threshold", config_.cpu_critical_threshold);
+
+            config_.memory_warning_threshold =
+                alarm.value("memory_warning_threshold", config_.memory_warning_threshold);
+            config_.memory_critical_threshold =
+                alarm.value("memory_critical_threshold", config_.memory_critical_threshold);
+
+            config_.disk_warning_threshold =
+                alarm.value("disk_warning_threshold", config_.disk_warning_threshold);
+            config_.disk_critical_threshold =
+                alarm.value("disk_critical_threshold", config_.disk_critical_threshold);
+        }
+
+        if (config_.alarm_continuous_count <= 0) {
+            Logger::warn("config", "invalid alarm continuous_count, reset to 3");
+            config_.alarm_continuous_count = 3;
+        }
+
+        Logger::info("config", "config loaded successfully");
+        return true;
+    } catch (const std::exception& e) {
+        Logger::error("config", std::string("parse config failed: ") + e.what());
+        return false;
+    }
 }
 
-const AppConfig& ConfigManager::getConfig() const{
-	return config_;
+const AppConfig& ConfigManager::getConfig() const {
+    return config_;
 }
-

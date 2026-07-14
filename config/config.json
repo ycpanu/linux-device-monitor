@@ -1,5 +1,18 @@
 {
-	"device_id":"linux_gateway_001",
-	"collect_interval":5,
-	"disk_path":"/"
+  "device_id": "linux_gateway_001",
+  "collect_interval": 5,
+  "disk_path": "/",
+
+  "alarm": {
+    "continuous_count": 3,
+
+    "cpu_warning_threshold": 70.0,
+    "cpu_critical_threshold": 90.0,
+
+    "memory_warning_threshold": 70.0,
+    "memory_critical_threshold": 90.0,
+
+    "disk_warning_threshold": 80.0,
+    "disk_critical_threshold": 95.0
+  }
 }
