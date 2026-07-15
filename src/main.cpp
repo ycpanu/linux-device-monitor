@@ -14,6 +14,30 @@
 #include <sstream>
 #include <thread>
 #include <ctime>
+#include <atomic>
+#include <csignal>
+
+/*
+ * g_running 用来控制主循环是否继续运行。
+ *
+ * atomic 表示原子变量，在信号处理或多线程场景下更安全。
+ */
+std::atomic<bool> g_running(true);
+
+/*
+ * 信号处理函数。
+ *
+ * 当用户按 Ctrl+C，或者 systemd 执行 stop 时，
+ * 程序会收到 SIGINT 或 SIGTERM。
+ *
+ * 收到信号后，把 g_running 改成 false，
+ * 主循环就会退出。
+ */
+void signalHandler(int signal) {
+    if (signal == SIGINT || signal == SIGTERM) {
+        g_running = false;
+    }
+}
 
 std::string formatDouble(double value) {
     std::ostringstream oss;
@@ -27,6 +51,15 @@ int main(int argc, char* argv[]) {
     if (argc == 3 && std::string(argv[1]) == "-c") {
         config_path = argv[2];
     }
+
+        /*
+     * 注册退出信号。
+     *
+     * SIGINT  ：通常来自 Ctrl+C
+     * SIGTERM ：通常来自 systemctl stop
+     */
+    std::signal(SIGINT, signalHandler);
+    std::signal(SIGTERM, signalHandler);
 
     Logger::info("main", "Linux Device Monitor Agent started");
 
@@ -92,7 +125,7 @@ int main(int argc, char* argv[]) {
 
     AlarmEngine alarm_engine(alarm_rule);
 
-    while (true) {
+    while (g_running) {
         SystemMetrics metrics;
         metrics.disk_path = config.disk_path;
 	metrics.timestamp = std::time(nullptr);
@@ -161,5 +194,6 @@ int main(int argc, char* argv[]) {
         std::this_thread::sleep_for(std::chrono::seconds(config.collect_interval));
     }
 
+    Logger::info("main", "linux Device Mnoitor Agent stopped");
     return 0;
 }
