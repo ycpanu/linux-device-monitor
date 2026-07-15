@@ -60,6 +60,51 @@ bool ConfigManager::load(const std::string& config_path) {
             config_.alarm_continuous_count = 3;
         }
 
+	//读取mqtt配置
+	if(j.contains("mqtt") && j["mqtt"].is_object())
+	{
+		json mqtt = j["mqtt"];
+
+		config_.mqtt_enabled = 
+			mqtt.value("enabled", config_.mqtt_enabled);
+
+		config_.mqtt_host = 
+			mqtt.value("host", config_.mqtt_host);
+
+		config_.mqtt_port = 
+			mqtt.value("port", config_.mqtt_port);
+
+		config_.mqtt_client_id = 
+			mqtt.value("client_id", config_.mqtt_client_id);
+
+		config_.mqtt_topic_prefix = 
+			mqtt.value("topic_prefix", config_.mqtt_topic_prefix);
+
+		config_.mqtt_keepalive = 
+			mqtt.value("keepalive", config_.mqtt_keepalive);
+
+		config_.mqtt_heartbeat_interval = 
+			mqtt.value("heartbeat_interval", config_.mqtt_heartbeat_interval);
+	}
+	
+	if(config_.mqtt_port <= 0)
+	{
+		Logger::warn("config", "invalid mqtt port, reset to 1883");
+		config_.mqtt_port = 1883;
+	}
+
+	if(config_.mqtt_keepalive <= 0)
+	{
+		Logger::warn("config", "invalid mqtt keepalive, reset to 60");
+		config_.mqtt_keepalive = 60;
+	}
+	
+	if(config_.mqtt_heartbeat_interval <= 0)
+	{
+		Logger::warn("config", "invalie mqtt heart_interval, reset to 30");
+		config_.mqtt_heartbeat_interval = 30;
+	}
+
         Logger::info("config", "config loaded successfully");
         return true;
     } catch (const std::exception& e) {

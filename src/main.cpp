@@ -6,6 +6,7 @@
 #include "collector/DiskCollector.h"
 #include "alarm/AlarmEngine.h"
 #include "storage/SQLiteStorage.h"
+#include "communication/MqttReporter.h"
 
 #include <chrono>
 #include <iomanip>
@@ -41,6 +42,9 @@ int main(int argc, char* argv[]) {
     Logger::info("main", "collect_interval: " + std::to_string(config.collect_interval) + " seconds");
     Logger::info("main", "disk_path: " + config.disk_path);
     Logger::info("main", "database_path:" + config.database_path);
+    Logger::info("main", "mqtt_enabled:" + std::string(config.mqtt_enabled ? "true" : "false"));
+    Logger::info("main", "mqtt_host:" + config.mqtt_host);
+    Logger::info("main", "mqtt_port:" + std::to_string(config.mqtt_port));
 
     CpuCollector cpu_collector;
     MemoryCollector memory_collector;
@@ -52,6 +56,24 @@ int main(int argc, char* argv[]) {
 	    Logger::error("main", "failed to initialize storage, program exit");
 	    return 1;
     }
+
+    //初始化mqtt
+    MqttConfig mqtt_config;
+    mqtt_config.enabled = config.mqtt_enabled;
+    mqtt_config.host = config.mqtt_host;
+    mqtt_config.port = config.mqtt_port;
+    mqtt_config.client_id = config.mqtt_client_id;
+    mqtt_config.topic_prefix = config.mqtt_topic_prefix;
+    mqtt_config.keepalive = config.mqtt_keepalive;
+
+    MqttReporter mqtt_reporter;
+    if(!mqtt_reporter.init(mqtt_config))
+    {
+	    Logger::warn("main", "mqtt reporter init falied, continue running locally");
+    }
+
+    long last_heartbeat_time = 0;
+
 
     /*
      * 根据配置文件创建告警规则。
@@ -91,6 +113,12 @@ int main(int argc, char* argv[]) {
 	    {
 		    Logger::warn("main", "save metrics failed");
 	    }
+
+	    if(!mqtt_reporter.reportMetrics(config.device_id, metrics))
+	    {
+		    Logger::warn("main", "report metrics falied");
+	    }
+
             /*
              * 第二阶段新增：
              * 将采集到的系统指标交给告警引擎判断。
@@ -110,10 +138,25 @@ int main(int argc, char* argv[]) {
 		{
 			Logger::warn("main", "save alarm failed");
 		}
+
+		if(!mqtt_reporter.reportAlarm(config.device_id, event))
+		{
+			Logger::warn("main", "report alarm falied");
+		}
             }
         } else {
             Logger::warn("main", "some metrics collect failed");
         }
+
+	long now = std::time(nullptr);
+	if(now - last_heartbeat_time >= config.mqtt_heartbeat_interval)
+	{
+		if(!mqtt_reporter.reportHeartbeat(config.device_id))
+		{
+			Logger::warn("main", "report heartbeat falied");
+		}
+		last_heartbeat_time = now;
+	}
 
         std::this_thread::sleep_for(std::chrono::seconds(config.collect_interval));
     }

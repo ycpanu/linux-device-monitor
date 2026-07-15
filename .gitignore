@@ -7,4 +7,5 @@ build/
 *.db
 .cache/
 .vscode/
-
+*.db
+data/*.db

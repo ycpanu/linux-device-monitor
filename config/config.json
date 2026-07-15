@@ -15,5 +15,15 @@
 
     "disk_warning_threshold": 80.0,
     "disk_critical_threshold": 95.0
+  },
+  
+  "mqtt":{
+	  "enabled":true,
+	  "host":"localhost",
+	  "port":1883,
+	  "client_id":"linux_gateway_001_agent",
+	  "topic_prefix":"device",
+	  "keepalive":60,
+	  "heartbeat_interval":30
   }
 }

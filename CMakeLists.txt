@@ -12,6 +12,8 @@ include_directories(include)
 find_package(nlohmann_json 3.2.0 REQUIRED)
 find_package(SQLite3 REQUIRED)
 
+find_library(MOSQUITTO_LIB mosquitto REQUIRED)
+
 add_executable(device-monitor
     src/main.cpp
 
@@ -25,11 +27,19 @@ add_executable(device-monitor
 
     src/alarm/AlarmEngine.cpp
     src/storage/SQLiteStorage.cpp
+
+    src/communication/MqttReporter.cpp
+)
+
+target_include_directories(device-monitor
+	PRIVATE
+	&{SQLite3_INCLUDE_DIRS}
 )
 
 # 链接 JSON 库
 target_link_libraries(device-monitor
     PRIVATE
     nlohmann_json::nlohmann_json
-    SQLite::SQLite3
+    ${SQLite3_LIBRARIES}
+    ${MOSQUITTO_LIB}
 )

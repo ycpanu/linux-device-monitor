@@ -32,6 +32,15 @@ struct AppConfig {
 
     double disk_warning_threshold = 80.0;
     double disk_critical_threshold = 95.0;
+
+    //MQTT配置
+    bool mqtt_enabled = false;
+    std::string mqtt_host = "localhost";
+    int mqtt_port = 1883;
+    std::string mqtt_client_id = "linux_gateway_001_agent";
+    std::string mqtt_topic_prefix = "device";
+    int mqtt_keepalive = 60;
+    int mqtt_heartbeat_interval = 30;
 };
 
 class ConfigManager {
