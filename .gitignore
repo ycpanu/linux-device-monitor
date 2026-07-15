@@ -5,7 +5,6 @@ build/
 *.out
 *.log
 *.db
+data/*.db
 .cache/
 .vscode/
-*.db
-data/*.db
