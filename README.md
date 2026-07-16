@@ -71,6 +71,7 @@ linux-device-monitor/
 │   ├── storage/
 │   └── main.cpp
 └── build/
+```
 
 ## 5.环境依赖
 
